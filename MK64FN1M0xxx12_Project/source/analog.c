@@ -3,6 +3,7 @@
 #include "fsl_debug_console.h"
 #include "types.h"
 
+//#define DEMO_ADC16_USER_CHANNEL  12U
 
 //Configure struct for adc and dac
 static adc16_config_t Adc16ConfigStruct;
@@ -14,6 +15,7 @@ static dac_config_t DacConfigStruct;
 //Configuring for the dac first
 bool Analog_Init(const uint32_t moduleClock)
 {
+  #if 0
   /* Configure the ADC. */
   /*
      * adc16ConfigStruct.referenceVoltageSource = kADC16_ReferenceVoltageSourceVref;
@@ -33,12 +35,13 @@ bool Analog_Init(const uint32_t moduleClock)
   ADC16_EnableHardwareTrigger(ADC16_BASE, false); 
   //Disabling the interrupt
   Adc16ChannelConfigStruct.enableInterruptOnConversionCompleted = false; 
+  #endif
 
 
   
   /* Configure the DAC. */
   /*
-   * dacConfigStruct.referenceVoltageSource = kDAC_ReferenceVoltageSourceVref2;
+   * dacConfigStruct.referenceVoltageSource = kDAC_ReferenceVoltageSourceVref2; DACREF_2 as the reference voltage -- VDDA = 3.3V
    * dacConfigStruct.enableLowPowerMode = false;
   */
   DAC_GetDefaultConfig(&DacConfigStruct);
@@ -47,13 +50,20 @@ bool Analog_Init(const uint32_t moduleClock)
   //Enable the output
   DAC_Enable(DAC_BASEADDR, true);
 
+  /* Make sure the read pointer to the start. */
+    /*
+     * The buffer is not enabled, so the read pointer can not move automatically. However, the buffer's read pointer
+     * and itemss can be written manually by user.
+     */
+ 
+  DAC_SetBufferReadPointer(DAC_BASEADDR, 0U) //U is unsigned
+
 
   return true;
 }
 
-//#define DEMO_ADC16_USER_CHANNEL  12U
 
-
+#if 0
 bool Analog_Get(const uint8_t channelNb, int16_t* const valuePtr)
 {
   Adc16ChannelConfigStruct.channelNumber = channelNb;
@@ -63,29 +73,19 @@ bool Analog_Get(const uint8_t channelNb, int16_t* const valuePtr)
 
   return true;
 }
+#endif
 
-
-
-
-bool Analog_Put(const uint8_t channelNb, const int16_t value)
+//DAC_BASEADDR for base address
+//Note that dac only supports 12 bit only
+bool Analog_Put(DAC_Type *base, const int16_t value)
 {
-
-  //Init the union type data
-  int16union_t dacValue;
-  dacValue.l = value;
 
   //Write to the DAT0 to output data without using buffer
   //DAC_DATL_DATA0(dacValue.s.Lo);  
   //DAC_DATH_DATA0(dacValue.s.Hi); //!!!!! 
 
-  DAC_SetBufferReadPointer(DAC_BASEADDR, 0U) //U is unsigned
-  /* Make sure the read pointer to the start. */
-    /*
-     * The buffer is not enabled, so the read pointer can not move automatically. However, the buffer's read pointer
-     * and itemss can be written manually by user.
-     */
-  DAC_SetBufferValue(DAC_BASEADDR, 0U, dacValue.l);
-  
+  base->DAT[index].DATL = (uint8_t)(0xFFU & value);         /* Low 8-bit. */
+  base->DAT[index].DATH = (uint8_t)((0xF00U & value) >> 8); /* High 4-bit. */
 
   return true;
 }

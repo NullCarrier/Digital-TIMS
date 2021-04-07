@@ -4,7 +4,7 @@
 
 
 #include "types.h"
-//#include "fsl_pit.h"
+//Timer adapter for PIT timer 
 #include "timer.h"
 
 //Assuming using the channel 0
@@ -15,7 +15,7 @@
 #define PIT_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
 
 //default initialise the pit module
-bool D_PIT_Init(void);
+bool DT_PIT_Init(void);
 
 
 
@@ -26,13 +26,13 @@ bool D_PIT_Init(void);
  *                 
  *  @note The function will enable the timer and interrupts for the PIT.
  */
-void PIT_Set(const uint32_t period, uint8_t channelNum);
+void DT_PIT_Set(const uint32_t period, uint8_t channelNum);
 
 /*! @brief Enables or disables the PIT.
  *
  *  @param enable - TRUE if the PIT is to be enabled, FALSE if the PIT is to be disabled.
  */
-void PIT_Enable(const bool enable);
+void DT_PIT_Enable(const bool enable);
 
 
 

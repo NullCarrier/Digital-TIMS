@@ -14,9 +14,6 @@
 // new types
 #include "types.h"
 
-// Maximum number of channels
-//#define ANALOG_NB_INPUTS  4
-//#define ANALOG_NB_OUTPUTS 4
 
 #define DAC_BASEADDR DAC0  //DAC Channel 0
 #define ADC16_BASE    ADC0 //ADC Channel 0
@@ -40,14 +37,14 @@ bool Analog_Init(const uint32_t moduleClock);
  *  @param valuePtr A pointer to a memory location to place the analog value.
  *  @return bool - true if the analog value was acquired successfully.
  */
-bool Analog_Get(const uint8_t channelNb, int16_t* const valuePtr);
+//bool Analog_Get(const uint8_t channelNb, int16_t* const valuePtr);
 
-/*! @brief Sends a value to an analog input channel.
+/*! @brief Sends a value to an analog output channel.
  *
  *  @param channelNb is the number of the analog output channel to send the value to.
- *  @param value is the value to write to the analog channel.
+ *  @param value is the value to write to the analog channel. (12 bit only)
  *  @return bool - true if the analog value was output successfully.
  */
-bool Analog_Put(const uint8_t channelNb, const int16_t value);
+bool Analog_Put(DAC_Type *base, const int16_t value);
 
 #endif
