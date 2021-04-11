@@ -4,90 +4,74 @@
 #include "fsl_debug_console.h"
 
 
-//Necesary structure for configuring timer
-static hal_timer_config_t halTimerConfig;
-//Define the timer handler
-TIMER_HANDLE_DEFINE(halTimerHandle);
+ /* Structure of initialize PIT */
+static pit_config_t pitConfig;
 
-static hal_timer_status_t statusFlag;
+//Function ptr to callback function
+static void (*FuncPtr)() = NULL; 
 
-
-
-bool DT_PIT_Init() 
+bool DT_PIT_Init(void)
 {
-  //Configuration of timer 
-  //Set up 1s period
-  halTimerConfig.timeout = 1000000; //The unit is microsecond
-  
-  halTimerConfig.srcClock_Hz = PIT_SOURCE_CLOCK; 
-  //Dont need instance
-  halTimerConfig.instance = 0;
-  
-  statusFlag = HAL_TimerInit((hal_timer_handle_t)halTimerHandle, &halTimerConfig);
-
-  switch (statusFlag)
-  {
-    case kStatus_HAL_TimerNotSupport : 
-      PRINTF("\r\nThe timer is supported...");
-      break;
-    case kStatus_HAL_TimerIsUsed : 
-      PRINTF("\r\nThe timer is used...");
-      break;
-    case kStatus_HAL_TimerInvalid : 
-      PRINTF("\r\nThe timer is invalid...");
-      break;
-    case kStatus_HAL_TimerOutOfRanger : 
-      PRINTF("\r\nThe timer is out of range...");
-      break;
-    default :
-      PRINTF("\r\nThe timer is initialised successfully...");
-      break;
-  }
-
+  /*
+     * pitConfig.enableRunInDebug = false;
+     */
+  PIT_GetDefaultConfig(&pitConfig);
+  /* Init pit module */
+  PIT_Init(D_PIT_BASEADDR, &pitConfig);
 
   return true;
 }
 
 
-void DT_PIT_Set(const uint32_t period, uint8_t channelNum)
+
+void DT_PIT_Set(const uint32_t period)
 {
-  switch (channelNum)
+  /* Set timer period for channel 0 */
+  PIT_SetTimerPeriod(D_PIT_BASEADDR, D_PIT_CHANNEL, USEC_TO_COUNT(period, PIT_SOURCE_CLOCK));
+}
+
+
+
+void DT_PIT_Enable(const bool enable, void (*userFunc)() )
+{
+  //Assign the function pointer   
+  FuncPtr = userFunc;
+
+  if (enable)
   {
-  case 0: 
-    PitChannel = kPIT_Chnl_0; 
-    break;
-  case 1: 
-    PitChannel = kPIT_Chnl_1; 
-    break;
-  case 2: 
-    PitChannel = kPIT_Chnl_2; 
-    break;
-  case 3: 
-    PitChannel = kPIT_Chnl_3; 
-    break;
-  default: //Error case message
-    return;
-  }
-
-
-  /* Set timer period for channel 0*/
-                                                 /*! Macro to convert a microsecond(us) period to raw count value    e.g. 1000000U */
-  PIT_SetTimerPeriod(D_PIT_BASEADDR, PitChannel, USEC_TO_COUNT(period, PIT_SOURCE_CLOCK));
   /* Enable timer interrupts for channel 0 */
-  PIT_EnableInterrupts(D_PIT_BASEADDR, PitChannel, kPIT_TimerInterruptEnable);
+    PIT_EnableInterrupts(D_PIT_BASEADDR, D_PIT_CHANNEL, kPIT_TimerInterruptEnable);
+
   /* Enable at the NVIC */
-  EnableIRQ(PIT_IRQ_ID);
+    EnableIRQ(PIT_IRQ_ID);
+
+  //Start the timer
+    PIT_StartTimer(D_PIT_BASEADDR, D_PIT_CHANNEL);
+  }
 
 }
 
 
 
-void DT_PIT_Enable(const bool enable)
+void PIT_LED_HANDLER(void)
 {
-  if (enable)
-    PIT_StartTimer(D_PIT_BASEADDR, PitChannel);
+    /* Clear interrupt flag.*/
+  PIT_ClearStatusFlags(D_PIT_BASEADDR, D_PIT_CHANNEL, kPIT_TimerFlag);
 
-}   
+  //call the callback function
+  if (FuncPtr)
+    FuncPtr();
+
+    /* Added for, and affects, all PIT handlers. For CPU clock which is much larger than the IP bus clock,
+     * CPU can run out of the interrupt handler before the interrupt flag being cleared, resulting in the
+     * CPU's entering the handler again and again. Adding DSB can prevent the issue from happening.
+     */
+  __DSB();
+
+
+}
+
+
 
 
 

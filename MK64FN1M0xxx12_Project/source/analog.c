@@ -15,7 +15,6 @@ static dac_config_t DacConfigStruct;
 //Configuring for the dac first
 bool Analog_Init(const uint32_t moduleClock)
 {
-  #if 0
   /* Configure the ADC. */
   /*
      * adc16ConfigStruct.referenceVoltageSource = kADC16_ReferenceVoltageSourceVref;
@@ -29,13 +28,14 @@ bool Analog_Init(const uint32_t moduleClock)
      * adc16ConfigStruct.enableContinuousConversion = false;
      */
   ADC16_GetDefaultConfig(&Adc16ConfigStruct);
+  //Init the adc
   ADC16_Init(ADC16_BASE, &Adc16ConfigStruct);
+
   /* Make sure the software trigger is used. */
   //Make sure adc is polling mode
   ADC16_EnableHardwareTrigger(ADC16_BASE, false); 
   //Disabling the interrupt
   Adc16ChannelConfigStruct.enableInterruptOnConversionCompleted = false; 
-  #endif
 
 
   
@@ -56,7 +56,7 @@ bool Analog_Init(const uint32_t moduleClock)
      * and itemss can be written manually by user.
      */
  
-  DAC_SetBufferReadPointer(DAC_BASEADDR, 0U) //U is unsigned
+  DAC_SetBufferReadPointer(DAC_BASEADDR, 0U); //U is unsigned
 
 
   return true;
@@ -81,11 +81,9 @@ bool Analog_Put(DAC_Type *base, const int16_t value)
 {
 
   //Write to the DAT0 to output data without using buffer
-  //DAC_DATL_DATA0(dacValue.s.Lo);  
-  //DAC_DATH_DATA0(dacValue.s.Hi); //!!!!! 
-
-  base->DAT[index].DATL = (uint8_t)(0xFFU & value);         /* Low 8-bit. */
-  base->DAT[index].DATH = (uint8_t)((0xF00U & value) >> 8); /* High 4-bit. */
+  //using first item only
+  base->DAT[0].DATL = (uint8_t)(0xFFU & value);         /* Low 8-bit. */
+  base->DAT[0].DATH = (uint8_t)((0xF00U & value) >> 8); /* High 4-bit. */
 
   return true;
 }

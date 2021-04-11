@@ -31,13 +31,13 @@
  */
 bool Analog_Init(const uint32_t moduleClock);
 
-/*! @brief Gets a value from an analog input channel.
+/*! @brief Gets a sample value from an analog input channel.
  *
  *  @param channelNb is the number of the analog input channel to get a value from.
  *  @param valuePtr A pointer to a memory location to place the analog value.
  *  @return bool - true if the analog value was acquired successfully.
  */
-//bool Analog_Get(const uint8_t channelNb, int16_t* const valuePtr);
+bool Analog_Get(const uint8_t channelNb, int16_t* const valuePtr);
 
 /*! @brief Sends a value to an analog output channel.
  *

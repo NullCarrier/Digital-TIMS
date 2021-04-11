@@ -29,7 +29,7 @@
  */
  
 /**
- * @file    MK64FN1M0xxx12_Project.c
+ * @file    main.c
  * @brief   Application entry point.
  */
 #include <stdio.h>
@@ -40,12 +40,30 @@
 #include "MK64F12.h"
 #include "fsl_debug_console.h"
 /* TODO: insert other include files here. */
+#include "pit.h"
 
 /* TODO: insert other definitions and declarations here. */
+
+//For tesing only
+#define LED_INIT()       LED_RED_INIT(LOGIC_LED_ON)
+#define LED_TOGGLE()     LED_RED_TOGGLE()
+
+#define SAMPLING_TIME 1000000U //1 sec
 
 /*
  * @brief   Application entry point.
  */
+
+void PIT_Callback(void)
+{
+  //Toggle the led
+  LED_TOGGLE();
+
+}
+
+
+
+
 int main(void) 
 {
   	/* Init board hardware. */
@@ -58,12 +76,21 @@ int main(void)
 #endif
 
   PRINTF("Hello World\n");
+/* Initialize and enable LED */
+LED_INIT();
+
+DT_PIT_Init();
+
+DT_PIT_Set(SAMPLING_TIME);
+//Enable and start the timer
+DT_PIT_Enable(true, PIT_Callback);
+
 
   /* Force the counter to be placed into memory. */
-  volatile static int i = 0 ;
+volatile static int i = 0 ;
   /* Enter an infinite loop, just incrementing a counter. */
-  while(1) 
-  {
+while(1) 
+{
     i++ ;
     /* 'Dummy' NOP to allow source level single stepping of
         tight while() loop */
