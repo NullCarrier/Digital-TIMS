@@ -3,7 +3,7 @@
 #include "fsl_debug_console.h"
 #include "types.h"
 
-//#define DEMO_ADC16_USER_CHANNEL  12U
+#define ADC16_CHANNEL_GROUP 0U //Group A -- SC1A
 
 //Configure struct for adc and dac
 static adc16_config_t Adc16ConfigStruct;
@@ -13,7 +13,7 @@ static dac_config_t DacConfigStruct;
 
 
 //Configuring for the dac first
-bool Analog_Init(const uint32_t moduleClock)
+bool Analog_Init()
 {
   /* Configure the ADC. */
   /*
@@ -28,20 +28,44 @@ bool Analog_Init(const uint32_t moduleClock)
      * adc16ConfigStruct.enableContinuousConversion = false;
      */
   ADC16_GetDefaultConfig(&Adc16ConfigStruct);
-  //Init the adc
-  ADC16_Init(ADC16_BASE, &Adc16ConfigStruct);
+
+  //Differential Sample 16-bit
+  Adc16ConfigStruct.resolution = kADC16_ResolutionDF16Bit; // !!!
+
+
+  //using external voltage source 
+  Adc16ConfigStruct.referenceVoltageSource = kADC16_ReferenceVoltageSourceValt;
+
+
+  //Init the adc 0
+  ADC16_Init(ADC16_BASE_0, &Adc16ConfigStruct);
+
+  //Init the adc 1
+  ADC16_Init(ADC16_BASE_1, &Adc16ConfigStruct);
 
   /* Make sure the software trigger is used. */
   //Make sure adc is polling mode
-  ADC16_EnableHardwareTrigger(ADC16_BASE, false); 
+  ADC16_EnableHardwareTrigger(ADC16_BASE_0, false); 
+  ADC16_EnableHardwareTrigger(ADC16_BASE_1, false); 
+
+  //Enabling the differential mode
+  Adc16ChannelConfigStruct.enableDifferentialConversion = true;
+
+  //Setting up channel : DADP0 DADM0 
+  Adc16ChannelConfigStruct.channelNumber  = ADC16_USER_CHANNEL;
+
   //Disabling the interrupt
   Adc16ChannelConfigStruct.enableInterruptOnConversionCompleted = false; 
 
 
+  //Starting the conversion for adc0
+  ADC16_SetChannelConfig(ADC16_BASE_0, ADC16_CHANNEL_GROUP, &Adc16ChannelConfigStruct);
+  //Starting the conversion for adc1
+  ADC16_SetChannelConfig(ADC16_BASE_1, ADC16_CHANNEL_GROUP, &Adc16ChannelConfigStruct);
   
   /* Configure the DAC. */
   /*
-   * dacConfigStruct.referenceVoltageSource = kDAC_ReferenceVoltageSourceVref2; DACREF_2 as the reference voltage -- VDDA = 3.3V
+   * dacConfigStruct.referenceVoltageSource = kDAC_ReferenceVoltageSourceVref2; DACREF_2 as the reference voltage -- VDDA = 3.6V
    * dacConfigStruct.enableLowPowerMode = false;
   */
   DAC_GetDefaultConfig(&DacConfigStruct);
@@ -63,17 +87,35 @@ bool Analog_Init(const uint32_t moduleClock)
 }
 
 
-#if 0
-bool Analog_Get(const uint8_t channelNb, int16_t* const valuePtr)
+
+
+
+void Analog_Get(const uint32_t channelNb, int16_t* const valuePtr)
 {
-  Adc16ChannelConfigStruct.channelNumber = channelNb;
-
+  uint32_t dataInADC = 0;
   //Conversion
+  /*
+    When in software trigger mode, each conversion would be launched once calling the "ADC16_ChannelConfigure()"
+    function, which works like writing a conversion command and executing it. For another channel's conversion,
+    just to change the "channelNumber" field in channel's configuration structure, and call the
+    "ADC16_ChannelConfigure() again.
+  */  
+  if ( channelNb == 0)
+  {
+    //Read adc0 value
+    dataInADC = ADC16_GetChannelConversionValue(ADC16_BASE_0, ADC16_CHANNEL_GROUP); 
+    *valuePtr = (dataInADC * VREF) / (1 << 16) ; //Coversion value in mV    
+  }
+  else if (channelNb == 1)
+  {
+    //Read adc1 value
+    dataInADC = ADC16_GetChannelConversionValue(ADC16_BASE_1, ADC16_CHANNEL_GROUP); 
+    *valuePtr = (dataInADC * VREF) / (1 << 16) ; //Coversion value in mV    
+  }
 
 
-  return true;
 }
-#endif
+
 
 //DAC_BASEADDR for base address
 //Note that dac only supports 12 bit only
